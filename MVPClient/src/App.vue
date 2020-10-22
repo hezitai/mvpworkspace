@@ -13,11 +13,11 @@
                 <p @click="showContent('apparatus')">仪器数据显示</p>
             </div>
             <div class="form-area">
-                <el-form ref="form" :model="form" size="mini" inline>
+                <!-- <el-form ref="form" :model="form" size="mini" inline>
                     <el-form-item label="数据保存位置">
                         <el-input disabled style="width:208px" v-model="form.fileLocation"></el-input>
                     </el-form-item>
-                </el-form>
+                </el-form> -->
                 <p class="alert-title">报警信息</p>
                 <div class="alert-content">
                     <div class="empty"></div>
@@ -29,7 +29,7 @@
                         <span>{{item.alarmValue}}</span> -->
                         <br>
                         <span>{{item.alarmDescription}}</span>
-                        
+
                     </div>
                 </div>
 
@@ -70,6 +70,9 @@ export default {
     },
     mounted() {
         this.getAlert();
+        window.setInterval(() => {
+            window.location.reload()
+        }, 1000 * 60 * 120)
     },
     components: {
         Winch, Mission, Apparatus
@@ -77,7 +80,8 @@ export default {
     methods: {
         getAlert() {
             let _this = this;
-            _this.getAlarmRealtime({ time: '', limit: '' })
+            // _this.getAlarmRealtime({ time: '', limit: '' })
+            window.clearInterval(this.timeInterval)
             this.timeInterval = window.setInterval(res => {
                 _this.getAlarmRealtime({
                     time: _this.thistime,
@@ -107,6 +111,7 @@ export default {
             this.drawer = true;
         },
         getMsg(ev) {
+            // console.log(ev)
             if (this.ele.indexOf(ev) == -1) {
                 this.ele.push(ev);
             } else {
@@ -116,24 +121,50 @@ export default {
                     }
                 }
             }
-            document.getElementById(ev).style.display = 'none';
             if (ev == 'mission') {
-                document.getElementsByClassName('btm-content')[0].style.height = '100%';
-                document.getElementById('winch').style.borderTopLeftRadius = '10px';
-                document.getElementById('apparatus').style.borderTopRightRadius = '10px';
+                if (document.getElementById('mission').clientHeight < 100) {
+                    document.getElementsByClassName('btm-content')[0].style.height = '77%'
+                } else {
+                    document.getElementsByClassName('btm-content')[0].style.height = (document.body.clientHeight - 42) + 'px'
+                }
+            } else {
+                document.getElementById(ev).style.display = 'none';
+                if (ev == 'apparatus') {
+                    document.getElementById('winch').style.marginRight = 0;
+                }
+                if (document.getElementById('winch').style.display == 'none' && document.getElementById('apparatus').style.display == 'none' && document.getElementById('mission').clientHeight > 100) {
+                    document.getElementsByClassName('btm-content')[0].style.height = '77%'
+                } else if (document.getElementById('winch').style.display == 'none' && document.getElementById('apparatus').style.display == 'none' && document.getElementById('mission').clientHeight < 100) {
+                    document.getElementsByClassName('btm-content')[0].style.height = (document.body.clientHeight - 42) + 'px'
+                } else if (document.getElementById('winch').style.display == 'none' && document.getElementById('mission').clientHeight < 100) {
+                    document.getElementsByClassName('btm-content')[0].style.height = (document.body.clientHeight - 42) + 'px'
+                } else if (document.getElementById('apparatus').style.display == 'none' && document.getElementById('mission').clientHeight < 100) {
+                    document.getElementsByClassName('btm-content')[0].style.height = (document.body.clientHeight - 42) + 'px'
+                } else if (document.getElementById('mission').clientHeight < 100) {
+                    document.getElementsByClassName('btm-content')[0].style.height = (document.body.clientHeight - 42) + 'px'
+                } else {
+                    document.getElementsByClassName('btm-content')[0].style.height = '77%'
+                }
             }
-            if (this.ele.length == 2) {
-                document.getElementById('apparatus').style.borderTopLeftRadius = '10px';
-                document.getElementById('apparatus').style.borderTopRightRadius = '10px';
-            }
+            // console.log(document.getElementById('mission').clientHeight);
+
+            // if (ev == 'mission') {
+            //     document.getElementsByClassName('btm-content')[0].style.height = (document.body.clientHeight - 82) + 'px'
+            //     // document.getElementById('winch').style.borderTopLeftRadius = '10px';
+            //     // document.getElementById('apparatus').style.borderTopRightRadius = '10px';
+            // }
+            // if (this.ele.length == 2) {
+            //     // document.getElementById('apparatus').style.borderTopLeftRadius = '10px';
+            //     // document.getElementById('apparatus').style.borderTopRightRadius = '10px';
+            // }
         },
         showContent(ele) {
+            // console.log(ele)
             document.getElementById(ele).style.display = 'block';
-            if (ele == 'mission') {
-                document.getElementsByClassName('btm-content')[0].style.height = '77%'
-                document.getElementById('winch').style.borderTopLeftRadius = '0px';
-                document.getElementById('apparatus').style.borderTopRightRadius = '0px';
+            if (ele == 'apparatus') {
+                document.getElementById('winch').style.marginRight = '8px'
             }
+            
             for (var i in this.ele) {
                 if (this.ele[i] == ele) {
                     this.ele.splice(i, 1);
@@ -155,9 +186,9 @@ export default {
             });
             // console.log(result, "result");
             try {
-                console.log(result);
+                // console.log(result);
             } catch (error) {
-                console.log(error);
+                // console.log(error);
             }
         },
         /**
@@ -174,14 +205,24 @@ export default {
                 }
             });
             try {
-                if (result.data.length == 1) {
-                    _this.alertArray.unshift(result.data[0])
-                } else if (result.data.length > 1) {
-                    _this.alertArray = result.data;
+                // if (result.data.length == 1) {
+                //     _this.alertArray.unshift(result.data[0]);
+                //     _this.thistime = result.data[0].timeTag;
+                // } else if (result.data.length > 1) {
+                //     // _this.alertArray = result.data;
+                //     for (let i in result.data) {
+                //         _this.alertArray.unshift(result.data[i])
+                //     }
+                //     _this.thistime = result.data[0].timeTag;
+                // }
+                if (result.data.length > 0) {
+                    for (let i in result.data) {
+                        _this.alertArray.unshift(result.data[i])
+                    }
                     _this.thistime = result.data[0].timeTag;
                 }
             } catch (error) {
-                console.log(error);
+                // console.log(error);
             }
         },
     }
@@ -217,8 +258,6 @@ export default {
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
     width: 99%;
-    height: 22%;
-    min-height: 187px;
     background: #fff;
     box-shadow: 1px 3px 3px #f60;
     margin-top: 8px;
@@ -306,7 +345,7 @@ export default {
     text-align: center;
     cursor: pointer;
     border: 1px solid #ccc;
-    border-radius: 20px;
+    border-radius: 10px;
     padding: 10px 0;
     color: #303133;
 }
@@ -328,7 +367,7 @@ export default {
 .form-area {
     padding: 0 30px;
 }
-.alert-content{
+.alert-content {
     border: 1px solid #ccc;
     border-radius: 5px;
     text-align: center;
@@ -337,10 +376,10 @@ export default {
     position: relative;
     font-size: 12px;
 }
-.alert-content .empty{
+.alert-content .empty {
     /* height: 32px; */
 }
-.alert-title{
+.alert-title {
     /* position: absolute;
     top:0;
     left: 80px; */
@@ -349,7 +388,7 @@ export default {
     height: 32px;
     margin: 0;
     padding: 3px 0;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
 }
 </style>

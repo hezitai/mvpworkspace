@@ -2,10 +2,22 @@
     <div id="mission">
         <div class="mission-box">
             <p class="page-title">
-                <span>任务内容显示</span>
-                <span class="close-btn" @click="closeItem('mission')"><i class="el-icon-circle-close"></i></span>
+                <span v-show="isMaxScreen == true">任务内容显示</span>
+                <span v-show="isMaxScreen == false">
+                    <span class="labelfont">当前任务状态：</span>
+                    <el-radio-group disabled v-model="form.missionStatus">
+                        <el-radio :label="3">等待执行</el-radio>
+                        <el-radio :label="48">正在执行</el-radio>
+                        <el-radio :label="51">投放间隔等待</el-radio>
+                        <el-radio :label="768">执行完成</el-radio>
+                        <el-radio :label="12288">已经取消</el-radio>
+                    </el-radio-group>
+                </span>
+
+                <span class="close-btn" style="right:26px" @click="handleSize('mission')" title="放大/缩小"><i :class="iconName"></i></span>
+                <span class="close-btn" @click="closeItem"><i class="el-icon-close"></i></span>
             </p>
-            <div class="mission-content">
+            <div class="mission-content" v-show="isMaxScreen == true">
                 <el-form ref="form" :model="form" inline class="from-content" size="mini">
                     <el-form-item label="当前任务名称：" label-width="120px">
                         <el-input disabled v-model="form.missionName" style="width:250px"></el-input>
@@ -41,14 +53,14 @@
                     <el-form-item label="设定深度(米)：" label-width="120px">
                         <el-input disabled v-model="form.settingDepth" style="width:70px"></el-input>
                     </el-form-item>
-                    <el-form-item label="设定投放次数(次)：" label-width="135px">
+                    <el-form-item label="设定投放次数(次)：" label-width="145px">
                         <el-input disabled v-model="form.settingThrowTimes" style="width:65px"></el-input>
                     </el-form-item>
-                    <el-form-item label="当前投放次数(次)：" label-width="135px">
+                    <el-form-item label="当前投放次数(次)：" label-width="145px">
                         <el-input disabled v-model="form.thisSettingThrowTimes" style="width:65px"></el-input>
                     </el-form-item>
                 </el-form>
-                <div class="btn-content">
+                <div class="btn-content" v-show="userlevel == 0">
                     <div class="left-btn-area">
                         <!--  v-show="userlevel == 0" -->
                         <el-button type="danger" @click="cancelMission" :disabled='cancelBtn'>取消当前任务</el-button>
@@ -58,7 +70,20 @@
                     <el-button type="primary" class="create-btn" @click="createMission">增加任务</el-button>
                 </div>
             </div>
+            <div class="minScreen" v-show="isMaxScreen == false">
+                <!-- <div class="form-content">
+                    <span class="labelfont">当前任务状态：</span>
+                    <el-radio-group disabled v-model="form.missionStatus">
+                        <el-radio :label="3">等待执行</el-radio>
+                        <el-radio :label="48">正在执行</el-radio>
+                        <el-radio :label="51">投放间隔等待</el-radio>
+                        <el-radio :label="768">执行完成</el-radio>
+                        <el-radio :label="12288">已经取消</el-radio>
+                    </el-radio-group>
+                </div> -->
+            </div>
         </div>
+
         <el-dialog title="新增任务" :visible.sync="dialogVisible" width="600px" :before-close="handleClose">
             <div>
                 <!--  :rules="dialogFromRules" -->
@@ -103,6 +128,8 @@ export default {
     name: 'mission',
     data() {
         return {
+            iconName: 'el-icon-top',
+            isMaxScreen: true,
             userlevel: 0,
             options: [],
             startBtn: false,
@@ -134,20 +161,36 @@ export default {
             hasRunningJob: false,
             waitingJob: [],
             setinterval: '',
+            setinterval1: '',
+            baseURL:'',
         }
     },
     created() {
-        this.userlevel = this.$level;
+        this.userlevel = localStorage.getItem('mvplevel');
+        console.log(this.userlevel + '==>0:USE;1:READONLY;2PLAYBACK')
     },
     mounted() {
-        // this.getWaitingJob();
-        // this.getRunningJob();
-        // this.getJobRealdata();
-        this.loopGetMission()
+        this.baseURL = localStorage.getItem('mvpip');
+        // console.log(this.baseURL)
+        this.getCurrentJob();
     },
     methods: {
-        closeItem(ele) {
+        handleSize(ele) {
+            if (this.iconName == 'el-icon-top') {
+                // 缩小
+                this.iconName = 'el-icon-bottom';
+                this.isMaxScreen = false;
+            } else {
+                // 放大
+                this.iconName = 'el-icon-top'
+                this.isMaxScreen = true;
+            }
             this.$emit('sendEleName', ele);
+        },
+        closeItem() {
+            // open(location, '_self').close();
+            window.location.href = "about:blank";
+            window.close();
         },
         startingMission() {
             this.$confirm('是否开始任务？', '提示', {
@@ -250,7 +293,7 @@ export default {
             params.settingDeep = Number(params.settingDeep);
             params.settingInterval = Number(params.settingInterval);
             params.settingTimes = Number(params.settingTimes);
-            console.log(params);
+            // console.log(params);
             this.addJob(params);
         },
         isSettingTimes() {
@@ -262,13 +305,9 @@ export default {
         },
         loopGetMission() {
             let _this = this;
-            this.setinterval = window.setInterval(() => {
-                // _this.getRunningJob();
-                // if (_this.hasRunningJob == false) {
-                //     _this.getWaitingJob()
-                // }
-                _this.getRealtimeJob()
-            }, 1000)
+            // this.setinterval = window.setInterval(() => {
+            //     // _this.getCurrentJob()
+            // }, 1000)
         },
         /**
          * 新增任务
@@ -290,7 +329,7 @@ export default {
                 }
             });
             try {
-                console.log(result.data);
+                // console.log(result.data);
                 _this.dialogFrom = {
                     missionName: '',
                     missionType: 5,
@@ -307,7 +346,7 @@ export default {
                 });
                 this.dialogVisible = false;
             } catch (error) {
-                console.log(error);
+                console.error(error);
                 _this.$message({
                     message: error,
                     type: 'success'
@@ -316,15 +355,19 @@ export default {
             }
         },
         /**
-         * 获取正在等待执行的任务
+         * 获取当前任务信息
         */
-        async getRealtimeJob() {
+        async getRealtimeJob(jobId) {
             let _this = this;
             let result = await request({
-                url: "/job/get_current_job",
-                method: "get"
+                url: "/job/get_job_realdata",
+                method: "get",
+                params: {
+                    jobId: jobId,
+                }
             });
             try {
+                window.clearInterval(_this.setinterval1);
                 if (result.data.length != 0) {
                     _this.form = {
                         missionName: result.data[0].jobName,
@@ -336,7 +379,77 @@ export default {
                         settingThrowTimes: result.data[0].dropTimes == -1 ? '无限次' : result.data[0].dropTimes,
                         thisSettingThrowTimes: result.data[0].runTimes
                     }
+                    if (result.data[0].jobStatus >= 768) {
+                        if (_this.userlevel == 0) {
+                            // 导出
+                            _this.exportData(jobId)
+                        }
+                        _this.getCurrentJob();
+                    } else {
+                        _this.setinterval1 = window.setInterval(() => {
+                            _this.getRealtimeJob(_this.realTimeJobId);
+                        }, 1000)
+                    }
+                } else {
+
                 }
+            } catch (error) {
+                console.error(error);
+            }
+        },
+
+        /**
+         * 获取最新任务信息
+        */
+        async getCurrentJob() {
+            let _this = this;
+            let result = await request({
+                url: "/job/get_current_job",
+                method: "get"
+            });
+            try {
+                window.clearInterval(_this.setinterval);
+                if (result.data.length > 0) {
+                    _this.form = {
+                        missionName: result.data[0].jobName,
+                        missionType: result.data[0].jobMode,
+                        missionStatus: result.data[0].jobStatus,
+                        timesThrowSec: result.data[0].intervalTime,
+                        securityDeepMet: result.data[0].safeDeep,
+                        settingDepth: result.data[0].setDeep,
+                        settingThrowTimes: result.data[0].dropTimes == -1 ? '无限次' : result.data[0].dropTimes,
+                        thisSettingThrowTimes: result.data[0].runTimes
+                    };
+                    _this.realTimeJobId = result.data[0].jobId;
+                    _this.getRealtimeJob(_this.realTimeJobId)
+                    // _this.exportData(20200914133701744)
+                    // if (result.data[0].jobStatus == 12288) {
+                    //     _this.getRealtimeJob(result.data[0].jobId)
+                    // }
+                } else {
+                    _this.setinterval = window.setInterval(() => {
+                        _this.getCurrentJob()
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        },
+        /**
+         * 导出
+         * */
+        async exportData(jobid) {
+            let _this = this;
+            let result = await request({
+                url: "job/export_data",
+                method: "get",
+                params: {
+                    jobId: jobid
+                }
+            });
+            try {
+                // console.log(result);
+                window.open(_this.baseURL + `/api/job/download?file_name=` + result.data.fileName)
             } catch (error) {
                 console.log(error);
             }
@@ -355,136 +468,9 @@ export default {
                 }
             });
             try {
-                console.log(result.data);
+                // console.log(result.data);
             } catch (error) {
-                console.log(error);
-            }
-        },
-
-        /**
-         * 获取正在执行的任务（旧）
-        */
-        async getRunningJob() {
-            let _this = this;
-            let result = await request({
-                url: "/job/get_running_job",
-                method: "get"
-            });
-            try {
-                _this.runningJob = result.data;
-                if (result.data.length == 0) {
-                    _this.hasRunningJob = false;
-                    _this.form.missionCode = 1;
-                    if (_this.waitingJob.length == 0) {
-                        _this.form = {
-                            missionCode: '',
-                            missionType: '',
-                            missionStatus: '',
-                            timesThrowSec: '',
-                            securityDeepMet: '',
-                            settingDepth: '',
-                            settingThrowTimes: '',
-                            thisSettingThrowTimes: ''
-                        }
-                        _this.realTimeJobId = ''
-                    } else {
-                        _this.form = {
-                            missionCode: 1,
-                            missionType: _this.waitingJob[0].jobMode,
-                            missionStatus: _this.waitingJob[0].jobStatus,
-                            timesThrowSec: _this.waitingJob[0].dropTimes,
-                            securityDeepMet: _this.waitingJob[0].safeDeep,
-                            settingDepth: _this.waitingJob[0].setDeep,
-                            settingThrowTimes: _this.waitingJob[0].dropTimes,
-                            thisSettingThrowTimes: _this.waitingJob[0].runTimes
-                        }
-                        _this.realTimeJobId = _this.waitingJob[0].jobId;
-                    }
-                } else {
-                    _this.hasRunningJob = true;
-                    if (_this.options.length == 0) {
-                        _this.options.unshift({
-                            value: 0,
-                            label: result.data[0].jobName,
-                            info: result.data[0]
-                        });
-                    }
-                    _this.form = {
-                        missionCode: 0,
-                        missionType: _this.options[0].info.jobMode,
-                        missionStatus: _this.options[0].info.jobStatus,
-                        timesThrowSec: _this.options[0].info.dropTimes,
-                        securityDeepMet: _this.options[0].info.safeDeep,
-                        settingDepth: _this.options[0].info.setDeep,
-                        settingThrowTimes: _this.options[0].info.dropTimes,
-                        thisSettingThrowTimes: _this.options[0].info.runTimes
-                    }
-                    _this.realTimeJobId = _this.options[0].info.jobId;
-                }
-            } catch (error) {
-                console.log(error);
-            }
-        },
-        /**
-         * 获取正在等待执行的任务（旧）
-        */
-        async getWaitingJob() {
-            let _this = this;
-            let result = await request({
-                url: "/job/get_waiting_job",
-                method: "get"
-            });
-            try {
-                _this.waitingJob = result.data;
-                _this.options.splice(1);
-                for (let i in result.data) {
-                    _this.options.push({
-                        value: _this.options.length + 1,
-                        label: result.data[i].jobName,
-                        info: result.data[i]
-                    });
-                }
-            } catch (error) {
-                console.log(error);
-            }
-        },
-        /**
-         * 获取当前任务的最新信息（旧）
-        */
-        async getJobRealdata(row) {
-            let result = await request({
-                url: "/job/get_job_realdata",
-                method: "get",
-                params: {
-                    jobId: row.jobId,
-                }
-            });
-            try {
-                console.log(result.data);
-            } catch (error) {
-                console.log(error);
-            }
-        },
-
-        
-        /**
-         * 下拉框选择任务  弃用
-         * */ 
-        selectMission() {
-            for (let i in this.options) {
-                if (this.form.missionCode == this.options[i].value) {
-                    this.form = {
-                        missionCode: this.form.missionCode,
-                        missionType: this.options[i].info.jobMode,
-                        missionStatus: this.options[i].info.jobStatus,
-                        timesThrowSec: this.options[i].info.dropTimes,
-                        securityDeepMet: this.options[i].info.safeDeep,
-                        settingDepth: this.options[i].info.setDeep,
-                        settingThrowTimes: this.options[i].info.dropTimes,
-                        thisSettingThrowTimes: this.options[i].info.runTimes
-                    }
-                    this.realTimeJobId = this.options[i].info.jobId;
-                }
+                // console.log(error);
             }
         },
     }
@@ -501,6 +487,7 @@ export default {
     /* min-width: 1320px; */
     display: flex;
     justify-content: space-between;
+    border-top: 1px solid #eee;
     position: relative;
 }
 .from-content {
@@ -522,7 +509,8 @@ export default {
     position: relative;
     margin: 5px 10px;
     line-height: 32px;
-    border-bottom: 1px solid #eee;
+    height: 32px;
+    /* border-bottom: 1px solid #eee; */
     cursor: default;
 }
 .page-title .close-btn {
@@ -555,5 +543,15 @@ export default {
 .usedinput[disabled] {
     border-color: #e4e7ed;
     color: #e4e7ed;
+}
+.labelfont {
+    font-size: 14px;
+    font-weight: 600;
+    color: #303133;
+    display: inline-block;
+    margin-left: 18px;
+}
+.form-content {
+    margin: 10px 0 12px 0;
 }
 </style>

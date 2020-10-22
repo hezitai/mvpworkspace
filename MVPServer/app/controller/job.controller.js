@@ -126,7 +126,7 @@ exports.export_data = (req, res) => {
     var his_table_name = "TAB_JOB_";
     his_table_name += req.query.jobId;
     var query_stmt = "SELECT * FROM  " + his_table_name + " order by timeTag";
-    var file_name = req.query.jobId + ".txt";
+    var file_name = "export_file/" + req.query.jobId + ".txt";
     const ws = g_fs.createWriteStream(file_name);
 
     db.query(query_stmt, {
@@ -134,8 +134,7 @@ exports.export_data = (req, res) => {
     })
         .then(real_data => {
             const jsonData = JSON.parse(JSON.stringify(real_data));
-            console.log("jsonData", jsonData);
-
+            //console.log("jsonData", jsonData);
             fastcsv
                 .write(jsonData, { headers: true })
                 .on("finish", function () {
@@ -172,7 +171,7 @@ exports.get_job_realdata = (req, res) => {
     const jobId = req.query.jobId;
     var query_stmt = "SELECT * FROM VW_JOB_REALTIME";
     if (jobId)
-        query_stmt += " where jobId >= $jobId order by runTimes desc limit 1";
+        query_stmt += " where jobId = $jobId order by runTimes desc limit 1";
     db.query(query_stmt, {
         bind: {
             jobId: jobId
@@ -196,6 +195,36 @@ exports.get_current_job = (req, res) => {
             res.send(real_data);
         })
 };
+
+exports.get_hisdata_by_runtimes = (req, res) => {
+
+    var job_id = req.query.jobId;
+    var run_times = req.query.run_times;
+    
+    var query_stmt = "SELECT * FROM  ";
+    if (job_id)
+        query_stmt += "VW_JOB_" + job_id;
+    else
+        query_stmt += "VW_JOB_REALTIME ";
+    if (run_times)
+        query_stmt += " where runTimes = $runTimes ";
+
+    db.query(query_stmt, {
+        bind: {
+            runTimes: run_times
+        },
+        type: db.QueryTypes.SELECT
+    })
+        .then(real_data => {
+            res.send(real_data);
+        })    
+};
+
+exports.download = (req, res) => {
+    const file = `${req.query.file_name}`;
+    res.download(file); // Set disposition and send it.
+};
+
 
 
 /*

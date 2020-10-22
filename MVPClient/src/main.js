@@ -10,12 +10,12 @@ import store from './store'
 Vue.config.productionTip = false;
 
 // Vue.prototype.$pageSizeBigOne = true;
-Vue.prototype.$store = store
+Vue.prototype.$store = store;
 Vue.prototype.$echarts = echarts;
-// console.log(localStorage.getItem('ipconfig'))
-// console.log(localStorage.getItem('userLevel'))
-// 0 操作  1 只读
-Vue.prototype.$level = localStorage.getItem('userLevel')
+// console.log(localStorage.getItem('mvpip'));
+// console.log(localStorage.getItem('mvplevel'));
+// 0 操作  1 只读  2  回放
+// Vue.prototype.$level = localStorage.getItem('mvplevel')
 
 Vue.use(ElementUI);
 Vue.use(animated)

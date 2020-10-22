@@ -1,4 +1,5 @@
 const db = require('../config/db.config.js').winchdb;
+const logger = require('../config/db.config.js').logger;
 
 const fastcsv = require("fast-csv");
 const fs = require("fs");
@@ -17,7 +18,8 @@ exports.init_winch = (req, res) => {
 
     db.query(execStmt)
        .then(data => {
-        res.send(data);
+           res.send(data);
+
         console.log("Init winch successfully!")
         }
         )
@@ -52,6 +54,8 @@ exports.data_prepare = (req, res) => {
 };
 
 exports.get_real_data = (req, res) => {
+    logger.info("req from", req.ip);
+    logger.info(req.query);
     const startTime = req.query.start_time;
     const limitCount = req.query.limit;
     var query_stmt = "SELECT * FROM VW_WINCH_REALTIME";
@@ -71,6 +75,7 @@ exports.get_real_data = (req, res) => {
     })
         .then(real_data => {
             res.send(real_data);
+            logger.debug(real_data);
             // Each record will now be an instance of Project
         })
 };
@@ -94,6 +99,37 @@ exports.export_realtime_data = (req, res) => {
                 .pipe(ws);
         })
 };
+
+exports.get_status_define = (req, res) => {
+    
+    const wId = req.query.wId;
+    const fieldName = req.query.fieldName;
+    const dataType = req.query.dataType;
+
+    var query_stmt = "SELECT * FROM VW_STATUS_DEFINE where 1=1 ";
+    if (wId)
+        query_stmt += " and wId = $wId ";
+    if (fieldName)
+        query_stmt += " and fieldName = $fieldName ";
+    if (dataType)
+        query_stmt += " and dataType = $dataType ";
+
+    db.query(query_stmt, {
+        bind: {
+            wId: wId,
+            fieldName: fieldName,
+            dataType:dataType
+        },
+        type: db.QueryTypes.SELECT
+    })
+        .then(real_data => {
+            res.send(real_data);
+            logger.debug(real_data);
+            // Each record will now be an instance of Project
+        })
+   
+};
+
 
 /*
  * sequelize
