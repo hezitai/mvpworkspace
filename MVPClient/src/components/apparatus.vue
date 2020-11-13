@@ -1,21 +1,21 @@
 <template>
     <div id="apparatus">
         <p class="page-title">
-            <!-- <span class="page-title-span">仪器数据显示</span> -->
             <span class="tool-box" v-show="pageSize == true">
-                <i title="重置视图" class="el-icon-refresh refreshbtn" @click="resetEcharts"></i>
+                <el-popover placement="left" width="480" trigger="hover">
+                    <span class="contrlbtns">
+                        <el-button type='success' @click="resetEcharts" size="mini">重置视图</el-button>
+                        <el-button type='primary' size="mini" @click="changeEchartsDataZoom(0)">减少显示数据</el-button>
+                        <span class="contrlbtnsinput">当前总共显示{{echartsDataZoom}}秒数据</span>
+                        <el-button type='primary' @click="changeEchartsDataZoom(1)" size="mini">增加显示数据</el-button>
+                    </span>
+                    <i title="更多操作" slot="reference" class="el-icon-warning refreshbtn"></i>
+                </el-popover>
                 <span class="legend-item" v-for="(item , $index) in legendArray" :key="$index">
                     <span class="legend-point" :style="{'background':item.color}" @click="showLine(item.id)">
                         <span :style="{'background':item.color}" class="legend-point-line"></span>
                     </span>
                     <span class="legend-title" @click="showYAxisAndWeightLine(item)">{{item.name}}</span>
-                </span>
-                <!-- <el-button @click="resetEcharts" size="mini">重置视图</el-button> -->
-
-                <span class="contrlbtns">
-                    <el-button type='primary' size="mini" @click="changeEchartsDataZoom(0)">&lt;&lt; 减少显示数据</el-button>
-                    <!-- <el-input class="contrlbtnsinput" size="mini" v-model="echartsDataZoom" disabled></el-input> -->
-                    <el-button type='primary' @click="changeEchartsDataZoom(1)" size="mini">增加显示数据 &gt;&gt;</el-button>
                 </span>
             </span>
             <span class="close-btn" style="right:20px" @click="handleSize('apparatus')" title="放大/缩小"><i :class="iconName"></i></span>
@@ -107,11 +107,12 @@ export default {
                     type: 'category',
                     boundaryGap: false,
                     data: [],
-                    axisLine: { show: true },
+                    axisLine: { show: true, lineStyle: { color: '#FFFFFF' } },
                     axisTick: { show: false },
                     splitLine: { show: false },
                     axisLabel: {
-                        show: false
+                        show: false,
+                        rotate: 45
                     }
                 },
                 yAxis: [],
@@ -124,6 +125,19 @@ export default {
             echartsDataZoom: 100,
             clearEchartsInterval: null,
         }
+    },
+    created() {
+        this.echartsDataZoom = Number(localStorage.getItem('echartsDataZoom'))
+        if (isNaN(this.echartsDataZoom)) {
+            this.echartsDataZoom = 300
+        }
+        if (this.echartsDataZoom < 100) {
+            this.echartsDataZoom = 100
+        }
+        if (this.echartsDataZoom > 3000) {
+            this.echartsDataZoom = 3000
+        }
+        // console.log(this.echartsDataZoom)
     },
     beforeMount() {
     },
@@ -179,9 +193,16 @@ export default {
                 }
             }
             let a = _this.myChart.getOption();
-            // console.log(a.series[0].data.length)
-            // console.log(a.xAxis[0].data.length)
-            // console.log(this.echartsDataZoom)
+            let t = a.xAxis[0].data[a.xAxis[0].data.length - 1];
+            let l = a.xAxis[0].data.length;
+            if (a.xAxis[0].data.length < this.echartsDataZoom) {
+                for (let i = 0; i < _this.echartsDataZoom - l; i++) {
+                    a.xAxis[0].data.push(_this.formatterTimes(t, i))
+                }
+            } else if (a.xAxis[0].data.length > this.echartsDataZoom) {
+
+            }
+            _this.myChart.setOption(a);
         },
         resetEcharts() {
             let _this = this;
@@ -193,6 +214,8 @@ export default {
                 options.series[i].lineStyle.width = 2;
             }
             options.yAxis[0].show = true;
+            options.dataZoom[0].start = 0;
+            options.dataZoom[0].end = 100;
             _this.myChart.setOption(options);
         },
         /**
@@ -204,7 +227,6 @@ export default {
             let options = _this.myChart.getOption();
             for (let i in options.yAxis) {
                 options.yAxis[i].show = false;
-                // options.series[i].lineStyle.width = 2
                 if (options.yAxis[i].id == row.id) {
                     if (row.sameAs == null) {
                         options.yAxis[i].show = true;
@@ -217,7 +239,6 @@ export default {
                         for (let k in options.yAxis) {
                             if (options.yAxis[k].id == row.sameAs) {
                                 options.yAxis[k].show = true;
-                                // options.series[i].lineStyle.width = 4
                                 if (options.series[i].lineStyle.width == 4) {
                                     options.series[i].lineStyle.width = 2
                                 } else {
@@ -257,8 +278,7 @@ export default {
             _this.setInterval = setInterval(() => {
                 _this.getApparatusData({
                     thisTimes: _this.thisTimes,
-                    // limit: _this.limit
-                    limit: '',
+                    limit: _this.limit
                 })
             }, 1000)
         },
@@ -296,12 +316,12 @@ export default {
                 useRollData.reverse();
             }
             for (let kk in useRollData) {
+                // 初始化 X 轴数量
                 if (isFirst == true) {
                     for (let i = 0; i < _this.echartsDataZoom; i++) {
                         options.xAxis[0].data.push(_this.formatterTimes(useRollData[kk].timeTag, i))
                     }
                 }
-                // 初始化 X 轴数量
                 if (options.xAxis[0].data.indexOf(useRollData[kk].timeTag) == -1) {
                     options.xAxis[0].data.push(useRollData[kk].timeTag)
                 }
@@ -321,15 +341,11 @@ export default {
                     options.xAxis[0].data.splice(0, (options.xAxis[0].data.length - _this.echartsDataZoom));
                 }
                 for (let i = 0; i < options.series.length; i++) {
-                    // console.log(options.series[i].data.length - _this.echartsDataZoom)
                     if (options.series[i].data.length > _this.echartsDataZoom) {
                         options.series[i].data.splice(0, (options.series[i].data.length - _this.echartsDataZoom));
                     }
                 }
             }
-            // console.log(result.data.length)
-            // console.log(options.xAxis)
-            // console.log(options.series)
             _this.myChart.setOption(options);
 
         },
@@ -341,14 +357,13 @@ export default {
                 this.myChart.clear();
                 this.myChart.setOption(a);
                 a = null;
-            }, 1000 * 60 * 5)
+            }, 1000 * 60 * 15)
         },
         /**
          * 获取Echarts数据
         */
         async getApparatusData(row) {
             let _this = this;
-            // console.log(row.thisTimes + '|' + row.limit)
             let result = await request({
                 url: "realtime",
                 method: "get",
@@ -363,27 +378,13 @@ export default {
                 */
                 if (result.data.length > 0) {
                     let resultUseCharts = JSON.parse(JSON.stringify(result));
-                    // console.log(resultUseCharts)
-                    // if (resultUseCharts.data.length > 1) {
                     for (let kk in resultUseCharts.data) {
                         for (let i in resultUseCharts.data[kk]) {
                             if (typeof resultUseCharts.data[kk][i] == 'number') {
                                 resultUseCharts.data[kk][i] = resultUseCharts.data[kk][i] == null ? 0 : resultUseCharts.data[kk][i].toFixed(2)
-                                // resultUseCharts.data[kk][i] == null ? 0 : resultUseCharts.data[0][i].toFixed(2)
                             }
                         }
                     }
-                    // } 
-                    // else {
-                    //     for (let i in resultUseCharts.data[0]) {
-                    //         if (typeof resultUseCharts.data[0][i] == 'number') {
-                    //             resultUseCharts.data[0][i] = resultUseCharts.data[0][i] == null ? 0 : resultUseCharts.data[0][i].toFixed(2)
-                    //             // resultUseCharts.data[0][i] == null ? 0 : resultUseCharts.data[0][i].toFixed(2)
-                    //         }
-                    //     }
-                    // }
-
-                    // console.log(resultUseCharts.data)
                     if (_this.globelNum == 0) {
                         _this.renderEcharts(resultUseCharts, true)
                     } else {
@@ -406,6 +407,7 @@ export default {
 
                         }
                     };
+                    _this.limit = '';
                 }
             } catch (error) {
                 console.error(error);
@@ -416,6 +418,9 @@ export default {
         */
         formatterTimes(time, sum) {
             let date = time;
+            if (!date) {
+                return
+            }
             date = date.substring(0, 19);
             date = date.replace(/-/g, '/');
             let timestamp = new Date(date).getTime();
@@ -438,13 +443,10 @@ export default {
         */
         drawLine() {
             let _this = this;
-            // 基于准备好的dom，初始化echarts实例
-            // this.myChart = this.$echarts.init(document.getElementById("myChart"));
             this.myChart = this.$echarts.getInstanceByDom(document.getElementById("myChart"));
             if (this.myChart === undefined) {
                 this.myChart = this.$echarts.init(document.getElementById("myChart"));
             }
-            // console.log(this.option)
             this.myChart.getZr().on('mousemove', params => {
                 var pointInPixel = [params.offsetX, params.offsetY];
                 if (this.myChart.containPixel('grid', pointInPixel)) {
@@ -452,20 +454,30 @@ export default {
                         return
                     };
                     _this.isEnter = true;
-                    window.clearInterval(_this.setInterval)
+                    let settimeouts = null;
+                    window.clearInterval(_this.setInterval);
+                    settimeouts = setTimeout(() => {
+                        _this.isEnter = false;
+                        _this.setInterval = setInterval(() => {
+                            _this.getApparatusData({
+                                thisTimes: _this.thisTimes,
+                                limit: _this.limit
+                            })
+                        }, 1000);
+                        window.clearTimeout(settimeouts);
+                    }, 5000)
                 }
             })
-            this.myChart.getZr().on('mouseout', function (ev) {
-                _this.isEnter = false;
-                window.clearInterval(_this.setInterval);
-                _this.setInterval = setInterval(() => {
-                    _this.getApparatusData({
-                        thisTimes: _this.thisTimes,
-                        // limit: _this.limit
-                        limit: ''
-                    })
-                }, 1000)
-            })
+            // this.myChart.getZr().on('mouseout', function (ev) {
+            //     _this.isEnter = false;
+            //     window.clearInterval(_this.setInterval);
+            //     _this.setInterval = setInterval(() => {
+            //         _this.getApparatusData({
+            //             thisTimes: _this.thisTimes,
+            //             limit: _this.limit
+            //         })
+            //     }, 1000)
+            // })
 
             this.myChart.setOption(this.option, true);
 
@@ -502,7 +514,6 @@ export default {
                 method: "get"
             });
             try {
-                // console.log(result.data);
                 _this.formArray = JSON.parse(JSON.stringify(result.data));
 
                 if (_this.formArray.length > 0) {
@@ -567,19 +578,6 @@ export default {
                 console.error(error);
             }
         }
-        // async getJsonDate() {
-        //      let _this = this;
-        //     let result = await request({
-        //         url: "/json/index.json",
-        //         method: "get"
-        //     });
-        //     try {
-        //         console.log(result);
-        //     } catch (error) {
-        //         console.log(error);
-        //     }
-        // }
-
     }
 }
 </script>
@@ -598,6 +596,10 @@ export default {
 .smellScreen {
     height: 100%;
     position: relative;
+    overflow-x: auto;
+}
+.smellScreen::-webkit-scrollbar {
+    display: none; /* Chrome Safari */
 }
 .from-content {
     display: flex;
@@ -606,7 +608,6 @@ export default {
     padding: 0 20px;
     margin-top: 96px;
     z-index: 99;
-    /* overflow: auto; */
 }
 .apparatus-from-content {
     height: 100%;
@@ -623,7 +624,6 @@ export default {
     overflow: auto;
     width: 100%;
     border-left: 1px solid #eee;
-    /* position: relative; */
 }
 .apparatus-from-content-1::-webkit-scrollbar {
     display: none; /* Chrome Safari */
@@ -640,8 +640,8 @@ export default {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    z-index: 9999;
-    /* overflow: auto; */
+    z-index: 1999;
+    padding-bottom: 5px;
 }
 .page-title .page-title-span {
     font-size: 16px;
@@ -654,13 +654,13 @@ export default {
     cursor: pointer;
     color: #303133;
 }
+.page-title .close-btn:hover {
+    color: #5cb6ff;
+}
 .grid-content {
-    /* margin-top:60px; */
-    overflow: auto;
     padding: 0 20px;
     z-index: 99;
     position: relative;
-    /* width: 100%; */
 }
 .grid-content::-webkit-scrollbar {
     display: none; /* Chrome Safari */
@@ -674,7 +674,6 @@ export default {
 .myChart {
     border-right: 1px solid #ccc;
 }
-/* 68 */
 .top-input {
     cursor: default;
     margin-bottom: 18px;
@@ -788,7 +787,6 @@ export default {
     border-radius: 4px;
     width: 100%;
     text-indent: 3px;
-    /* white-space: nowrap; */
 }
 .contrlbtns {
     display: inline-block;
@@ -797,10 +795,10 @@ export default {
 }
 .contrlbtns .contrlbtnsinput {
     display: inline-block;
-    width: 35px;
     vertical-align: middle;
-    margin: 0 10px;
+    margin: 0 5px;
     text-align: center;
+    font-size: 12px;
 }
 .refreshbtn {
     display: inline-block;
@@ -811,8 +809,5 @@ export default {
 .tool-box {
     display: inline-block;
     margin-left: 20px;
-    /* width: 100%; */
-    /* display: flex; */
-    /* flex-wrap: nowrap; */
 }
 </style>

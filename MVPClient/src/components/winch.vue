@@ -1,24 +1,22 @@
 <template>
     <div id="winch">
         <p class="page-title">
-            <!-- <span>绞车信息显示</span> -->
             <span style="display:inline-block;margin-left:60px" v-show="pageSize == false">
+                <el-popover placement="left" width="480" trigger="hover">
+                    <span class="contrlbtns">
+                        <el-button type='success' @click="resetEcharts" size="mini">重置视图</el-button>
+                        <el-button type='primary' size="mini" @click="changeEchartsDataZoom(0)">减少显示数据</el-button>
+                        <span class="contrlbtnsinput">当前总共显示{{echartsDataZoom}}秒数据</span>
+                        <el-button type='primary' @click="changeEchartsDataZoom(1)" size="mini">增加显示数据</el-button>
+                    </span>
+                    <i title="更多操作" slot="reference" class="el-icon-warning refreshbtn"></i>
+                </el-popover>
                 <span class="legend-item" v-for="(item , $index) in legendArray" :key="$index">
                     <span class="legend-point" :style="{'background':item.color}" @click="showLine(item.id)">
                         <span :style="{'background':item.color}" class="legend-point-line"></span>
                     </span>
                     <span class="legend-title" @click="showYAxisAndWeightLine(item)">{{item.name}}</span>
                 </span>
-                <span class="contrlbtns">
-                    <el-button type='primary' size="mini" @click="changeEchartsDataZoom(0)">&lt;&lt; 减少显示数据</el-button>
-                    <!-- <el-input class="contrlbtnsinput" size="mini" v-model="echartsDataZoom" disabled></el-input> -->
-                    <el-button type='primary' @click="changeEchartsDataZoom(1)" size="mini">增加显示数据 &gt;&gt;</el-button>
-                </span>
-                <!-- <span class="contrlbtns">
-                    <el-button type='primary' @click="changeEchartsDataZoom(1)" size="mini">&lt;&lt; 增加显示数据</el-button>
-                    <el-input class="contrlbtnsinput" size="mini" v-model="echartsDataZoom" disabled></el-input>
-                    <el-button type='primary' size="mini" @click="changeEchartsDataZoom(0)">减少显示数据 &gt;&gt;</el-button>
-                </span> -->
             </span>
             <span class="close-btn" style="right:20px" @click="handleSize('winch')" title="放大/缩小"><i :class="iconName"></i></span>
             <span class="close-btn" @click="closeItem('winch')"><i class="el-icon-circle-close"></i></span>
@@ -35,7 +33,10 @@
                         </div>
                     </div>
                     <div class="grid-content">
-                        <div style="width:100%;height:84px"></div>
+                        <div style="width:100%;height:90px"></div>
+                        <div>
+                            <el-checkbox disabled v-for="(item, $index) in checkboxarray[0].arr[0].array" :key="$index" :label="item.dataValue" v-model="item.checked" :name="item.dataValue">{{item.dataDescription}}</el-checkbox>
+                        </div>
                         <div class="form-label" v-for="(item, $index) in formArray" :key="$index" :label="item.dataName + '(' + item.dataUnit + ')'">
                             <p>{{item.dataName}} <span v-if="item.dataUnit!= null">({{item.dataUnit}})</span></p>
                             <span class="form-label-res">
@@ -50,21 +51,25 @@
                 <div class="bigScreen">
                     <div class="leftScreen">
                         <div class="leftScreen-inside">
-                            <!-- , height:'671px' -->
                             <div id="myChart1" :style="{ width: '100%',zIndex:'9' }"></div>
                             <div class="checkbox-content">
-                                <el-collapse v-model="activeNames">
-                                    <el-collapse-item class="checkbox-group" v-for="(item, $index) in checkboxarray" :key="$index" :title="item.name" :name="$index + 1">
-                                        <div v-for="(it, is) in item.arr" :key="is" class="checkbox-box">
-                                            <el-checkbox disabled v-for="(itt, iss) in it.array" :key="iss" :label="itt.dataValue" v-model="itt.checked" :name="itt.dataValue">{{itt.dataDescription}}</el-checkbox>
+                                <!-- <el-collapse v-model="activeNames" @change="changeCollapse">
+                                    <el-collapse-item class="checkbox-group" v-for="(item, $index) in checkboxarray" :key="$index" :name="$index + 1" v-if="$index < 1">
+                                        <template slot="title" v-if="activeNames.indexOf($index + 1) < 0">
+                                            <div class="checkbox-box" v-if="$index < 1">
+                                                <el-checkbox disabled v-for="(itt, iss) in item.arr[0].array" :key="iss" :label="itt.dataValue" v-model="itt.checked" :name="itt.dataValue" v-if="iss < 4">{{itt.dataDescription}}</el-checkbox>
+                                            </div>
+                                        </template>
+                                        <div v-if="$index < 1">
+                                            <div v-for="(it, is) in item.arr" :key="is" class="checkbox-box">
+                                                <el-checkbox disabled v-for="(itt, iss) in it.array" :key="iss" :label="itt.dataValue" v-model="itt.checked" :name="itt.dataValue">{{itt.dataDescription}}</el-checkbox>
+                                            </div>
                                         </div>
-                                        <!-- <el-checkbox disabled v-for="(it, is) in item.arr" :key="is" :label="it.dataValue" v-model="it.checked" :name="it.dataValue">{{it.dataDescription}}</el-checkbox> -->
                                     </el-collapse-item>
-                                </el-collapse>
-
-                                <!-- <div class="checkbox-group" v-for="(item, $index) in checkboxarray" :key="$index">
-                                <el-checkbox v-for="(it, is) in item.arr" :key="is" :label="it.dataValue" v-model="it.checked" :name="it.dataValue">{{it.dataDescription}}</el-checkbox>
-                            </div> -->
+                                </el-collapse> -->
+                                <div class="checkbox-box">
+                                    <el-checkbox disabled v-for="(item, $index) in checkboxarray[0].arr[0].array" :key="$index" :label="item.dataValue" v-model="item.checked" :name="item.dataValue">{{item.dataDescription}}</el-checkbox>
+                                </div>
                             </div>
                         </div>
 
@@ -102,13 +107,13 @@ export default {
     name: 'winch',
     data() {
         return {
-            activeNames: [1, 2, 3, 4],
+            activeNames: [1, 2, 3],
             readyRenderCheckboxData: false,
             globelNum: 0,
             formArray: [],
             chartsArray: [],
             isEnter: false,
-            echartsDataZoom: 100,
+            echartsDataZoom: 300,
             colorArray: ['#0000FF', '#DC143C', '#800080', '#5F9EA0', '#FF8C00', '#48D1CC', '#696969', '#006400', '#8B4513', '#FFD700'],
             legendArray: [],
             checkvalueArray: [],
@@ -132,7 +137,7 @@ export default {
                 proportionalExport: '',
                 brakeBar: '',
             },
-            checkboxarray: [{ arr: [] }],
+            checkboxarray: [{ arr: [{ array: [] }] }],
             myChart1: "",
             option: {
                 title: {
@@ -142,9 +147,6 @@ export default {
                     trigger: 'axis'
                 },
                 color: ['#0000FF', '#DC143C', '#800080', '#5F9EA0', '#FF8C00', '#48D1CC', '#696969', '#006400', '#8B4513', '#FFD700'],
-                // legend: {
-                //     data: ['深度(米)', '当前海深(米)', '温度(℃)', '导电率(S/m)', '压力(bar)', '盐度(psu)', '声速(m/s)', 'PH()', '浊度(ug/l)', '叶绿素(ug/l)']
-                // },
                 grid: {
                     left: '5%',
                     right: '5%',
@@ -160,7 +162,7 @@ export default {
                     type: 'category',
                     boundaryGap: false,
                     data: [],
-                    axisLine: { show: true },
+                    axisLine: { show: true, lineStyle: { color: '#FFFFFF' } },
                     axisTick: { show: false },
                     splitLine: { show: false },
                     axisLabel: {
@@ -198,13 +200,26 @@ export default {
     props: {
         pageSize: Boolean,
     },
+    created() {
+        this.echartsDataZoom = Number(localStorage.getItem('echartsDataZoom'))
+        if (isNaN(this.echartsDataZoom)) {
+            this.echartsDataZoom = 300
+        }
+        if (this.echartsDataZoom < 100) {
+            this.echartsDataZoom = 100
+        }
+        if (this.echartsDataZoom > 3000) {
+            this.echartsDataZoom = 3000
+        }
+        // console.log(this.echartsDataZoom)
+    },
     beforeMount() {
     },
     mounted() {
         this.getStatusDefine();
         this.getwshow();
-        document.getElementsByClassName('input-area')[0].style.height = (document.getElementById('winch').clientHeight - 50) + 'px';
-        document.getElementsByClassName('input-area-1')[0].style.height = (document.getElementById('winch').clientHeight - 50) + 'px';
+        document.getElementsByClassName('input-area')[0].style.height = (document.getElementById('winch').clientHeight - 40) + 'px';
+        document.getElementsByClassName('input-area-1')[0].style.height = (document.getElementById('winch').clientHeight - 40) + 'px';
         let _this = this;
         window.onresize = function () {
             _this.myChart1.resize()
@@ -213,6 +228,23 @@ export default {
         this.clearEcharts()
     },
     methods: {
+        changeCollapse(event) {
+            // console.log(event)
+        },
+        resetEcharts() {
+            let _this = this;
+            let options = _this.myChart1.getOption();
+            for (let i in options.yAxis) {
+                options.yAxis[i].show = false;
+            }
+            for (let i in options.series) {
+                options.series[i].lineStyle.width = 2;
+            }
+            options.yAxis[0].show = true;
+            options.dataZoom[0].start = 0;
+            options.dataZoom[0].end = 100;
+            _this.myChart1.setOption(options);
+        },
         clearEcharts() {
             let _this = this;
             window.clearInterval(this.clearEchartsInterval)
@@ -221,7 +253,7 @@ export default {
                 this.myChart1.clear();
                 this.myChart1.setOption(a);
                 a = null;
-            }, 1000 * 60 * 5)
+            }, 1000 * 60 * 15)
         },
         changeEchartsDataZoom(type) {
             let _this = this;
@@ -236,6 +268,17 @@ export default {
                     this.echartsDataZoom = 100
                 }
             }
+            let a = _this.myChart1.getOption();
+            let t = a.xAxis[0].data[a.xAxis[0].data.length - 1];
+            let l = a.xAxis[0].data.length;
+            if (a.xAxis[0].data.length < this.echartsDataZoom) {
+                for (let i = 0; i < _this.echartsDataZoom - l; i++) {
+                    a.xAxis[0].data.push(_this.formatterTimes(t, i))
+                }
+            } else if (a.xAxis[0].data.length > this.echartsDataZoom) {
+
+            }
+            _this.myChart1.setOption(a);
         },
         closeItem(ele) {
             this.$emit('sendEleName', ele);
@@ -259,7 +302,6 @@ export default {
             let options = _this.myChart1.getOption();
             for (let i in options.yAxis) {
                 options.yAxis[i].show = false;
-                // options.series[i].lineStyle.width = 2
                 if (options.yAxis[i].id == row.id) {
                     if (row.sameAs == null) {
                         options.yAxis[i].show = true;
@@ -375,7 +417,6 @@ export default {
                     options.xAxis[0].data.splice(0, (options.xAxis[0].data.length - _this.echartsDataZoom));
                 }
                 for (let i = 0; i < options.series.length; i++) {
-                    // console.log(options.series[i].data.length - _this.echartsDataZoom)
                     if (options.series[i].data.length > _this.echartsDataZoom) {
                         options.series[i].data.splice(0, (options.series[i].data.length - _this.echartsDataZoom));
                     }
@@ -432,7 +473,6 @@ export default {
                         for (let j in _this.checkboxarray) {
                             for (let k in _this.checkboxarray[j].arr) {
                                 if (i == _this.checkboxarray[j].arr[k].fieldName) {
-                                    // value
                                     _this.checkboxarray[j].arr[k].value = resultUseCharts1.data[0][i]
                                 }
                             }
@@ -446,10 +486,6 @@ export default {
                                     _this.checkboxarray[y].arr[u].array[p].checked = true
                                 }
                             }
-                            // _this.checkboxarray[y].arr[u].checked = false
-                            // if ((_this.checkboxarray[y].value & _this.checkboxarray[y].arr[u].dataValue) > 0) {
-                            //     _this.checkboxarray[y].arr[u].checked = true
-                            // }
                         }
                     }
                     // console.log(_this.checkboxarray)
@@ -468,7 +504,6 @@ export default {
                 method: "get"
             });
             try {
-                // console.log(result.data);
                 _this.formArray = JSON.parse(JSON.stringify(result.data));
 
                 if (_this.formArray.length > 0) {
@@ -533,8 +568,6 @@ export default {
         },
         drawLine() {
             let _this = this;
-            // 基于准备好的dom，初始化echarts实例
-            // this.myChart1 = this.$echarts.init(document.getElementById("myChart1"));
             this.myChart1 = this.$echarts.getInstanceByDom(document.getElementById("myChart1"));
             if (this.myChart1 === undefined) {
                 this.myChart1 = this.$echarts.init(document.getElementById("myChart1"));
@@ -546,20 +579,31 @@ export default {
                         return
                     };
                     _this.isEnter = true;
-                    window.clearInterval(_this.setInterval)
+                    window.clearInterval(_this.setInterval);
+
+                    let settimeouts = null;
+                    settimeouts = setTimeout(() => {
+                        _this.isEnter = false;
+                        _this.setInterval = setInterval(() => {
+                            _this.getWinchData({
+                                thisTimes: _this.thisTimes,
+                                limit: '',
+                            })
+                        }, 1000);
+                        window.clearTimeout(settimeouts);
+                    }, 5000)
                 }
             })
-            this.myChart1.getZr().on('mouseout', function (ev) {
-                _this.isEnter = false;
-                window.clearInterval(_this.setInterval);
-                _this.setInterval = setInterval(() => {
-                    _this.getWinchData({
-                        thisTimes: _this.thisTimes,
-                        limit: '',
-                        // limit: _this.limit
-                    })
-                }, 1000)
-            })
+            // this.myChart1.getZr().on('mouseout', function (ev) {
+            //     _this.isEnter = false;
+            //     window.clearInterval(_this.setInterval);
+            //     _this.setInterval = setInterval(() => {
+            //         _this.getWinchData({
+            //             thisTimes: _this.thisTimes,
+            //             limit: '',
+            //         })
+            //     }, 1000)
+            // })
             this.myChart1.setOption(this.option, true);
             let elementResizeDetectorMaker = require("element-resize-detector");//引入监听dom变化的组件
             let erd = elementResizeDetectorMaker();
@@ -570,8 +614,6 @@ export default {
                     _this.myChart1.resize(); //变化重新渲染饼图
                 })
             });
-
-            // let winchContent = document.getElementsByClassName('winch-content')[0];
             /**
              * 监听任务内容框是否缩小
              * */
@@ -579,15 +621,13 @@ export default {
                 _this.$nextTick(function () {
                     document.getElementsByClassName('input-area')[0].style.height = element.clientHeight + 'px';
                     document.getElementsByClassName('input-area-1')[0].style.height = element.clientHeight + 'px';
-
-                    document.getElementById('myChart1').style.height = element.clientHeight - document.getElementsByClassName('checkbox-content')[0].clientHeight + 'px';
-                    if (document.getElementById('myChart1').clientHeight > 500) {
-                        document.getElementById('myChart1').style.height = element.clientHeight - document.getElementsByClassName('checkbox-content')[0].clientHeight + 'px';
-                    } else {
-                        document.getElementById('myChart1').style.height = element.clientHeight - (49 * _this.checkboxarray.length) + 'px';
-                    }
-                    // document.getElementById('myChart1').style.height = element.clientHeight - 148 + 'px'
-                    // document.getElementsByClassName('leftScreen')[0].style.height = document.getElementsByClassName('checkbox-content')[0].clientHeight + 671 + 'px'
+                    document.getElementById('myChart1').style.height = element.clientHeight - 100 + 'px';
+                    // document.getElementById('myChart1').style.height = element.clientHeight - document.getElementsByClassName('checkbox-content')[0].clientHeight + 'px';
+                    // if (document.getElementById('myChart1').clientHeight > 500) {
+                    //     document.getElementById('myChart1').style.height = element.clientHeight - document.getElementsByClassName('checkbox-content')[0].clientHeight + 'px';
+                    // } else {
+                    //     document.getElementById('myChart1').style.height = element.clientHeight - (49 * _this.checkboxarray.length) + 'px';
+                    // }
                     _this.myChart1.resize(); //变化重新渲染饼图
                 })
             });
@@ -603,11 +643,6 @@ export default {
                 _this.checkboxarray = [];
                 let b = [];
                 let c = [];
-                // for (let i in result.data) {
-                //     if (b.indexOf(result.data[i].fieldName) == -1) {
-                //         b.push(result.data[i].fieldName)
-                //     }
-                // }
                 for (let i in result.data) {
                     if (b.indexOf(result.data[i].dataType) == -1) {
                         b.push(result.data[i].dataType)
@@ -624,9 +659,6 @@ export default {
                     };
                     _this.checkboxarray.push(a)
                 }
-                // console.log(result.data)
-                // console.log(b)
-                // console.log(c)
                 for (let i = 0; i < b.length; i++) {
                     for (let j = 0; j < result.data.length; j++) {
                         if (b[i] == result.data[j].dataType) {
@@ -660,8 +692,6 @@ export default {
 
                     }
                 }
-                // console.log(aaa);
-
                 for (let i = 0; i < _this.checkboxarray.length; i++) {
                     _this.checkboxarray[i].arr = [];
                     for (let j = 0; j < aaa.length; j++) {
@@ -674,30 +704,10 @@ export default {
                                 value: 0,
                                 fieldName: aaa[j].name,
                                 dataType: aaa[j].dataType,
-                                // checked: false,
                             })
                         }
                     }
                 }
-
-                // for (let i = 0; i < b.length; i++) {
-                //     for (let j = 0; j < result.data.length; j++) {
-                //         if (b[i] == result.data[j].fieldName) {
-                //             result.data[j].checked = false;
-                //             // result.data[j].dataType = 
-                //             _this.checkboxarray[i].dataType = result.data[j].dataType;
-                //             if (_this.checkboxarray[i].name == '') {
-                //                 _this.checkboxarray[i].name = result.data[j].fieldName + ' System'
-                //             }
-                //             if (_this.checkboxarray[i].fieldName == '') {
-                //                 _this.checkboxarray[i].fieldName = result.data[j].fieldName
-                //             }
-                //             _this.checkboxarray[i].arr.push(result.data[j])
-                //         }
-                //     }
-                //     // checkboxarray
-                // }
-                // console.log(_this.checkboxarray)
                 _this.readyRenderCheckboxData = true
             } catch (error) {
                 console.error(error);
@@ -709,6 +719,9 @@ export default {
 </script>
 
 <style scoped>
+/* #myChart1{
+    height: calc(100% - 60px);
+} */
 .winch-content {
     height: 94%;
 }
@@ -718,6 +731,7 @@ export default {
     flex-direction: row;
     flex-wrap: wrap;
     margin: 10px 0;
+    padding-left: 20px;
 }
 .checkbox-box .el-checkbox {
     width: 220px;
@@ -740,18 +754,20 @@ export default {
     display: block;
     text-align: left;
     line-height: 20px;
-    /* margin:2px 0px 2px 32px; */
 }
 .page-title {
     height: 32px;
-    font-size: 16px;
-    color: #409eff;
     position: relative;
     margin: 5px 10px;
     line-height: 32px;
     border-bottom: 1px solid #eee;
     cursor: default;
-    z-index: 999;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    z-index: 1999;
+    padding-bottom: 5px;
 }
 .page-title .close-btn {
     position: absolute;
@@ -759,6 +775,9 @@ export default {
     top: 0px;
     cursor: pointer;
     color: #303133;
+}
+.page-title .close-btn:hover {
+    color: #5cb6ff;
 }
 .form-1 {
     padding: 0 20px;
@@ -794,10 +813,6 @@ export default {
 .leftScreen {
     width: 85%;
     height: 100%;
-    /* display: flex;
-    flex-direction: column; */
-    /* align-items: flex-start; */
-    /* justify-content: flex-start; */
     overflow: auto;
 }
 .leftScreen::-webkit-scrollbar {
@@ -831,17 +846,19 @@ export default {
 .input-area-1::-webkit-scrollbar {
     display: none; /* Chrome Safari */
 }
-/* .checkbox-content .el-checkbox-group {
-    margin: 20px 0;
-    padding: 0 20px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    align-items: center;
+.contrlbtns {
+    display: inline-block;
+    margin-left: 20px;
+    z-index: 999;
 }
-.checkbox-content .el-checkbox-group .el-checkbox {
-    width: 100px;
-} */
+.contrlbtns .contrlbtnsinput {
+    display: inline-block;
+    /* width: 35px; */
+    vertical-align: middle;
+    margin: 0 5px;
+    text-align: center;
+    font-size: 12px;
+}
 .legend-item {
     display: inline-block;
     padding: 0 4px;
@@ -920,7 +937,6 @@ export default {
     border-radius: 4px;
     width: 100%;
     text-indent: 3px;
-    /* white-space: nowrap; */
 }
 .top-input {
     cursor: default;
@@ -946,7 +962,6 @@ export default {
     position: absolute;
     top: 0;
     z-index: 100;
-    /* padding: 0 20px; */
 }
 .top-input-1 p {
     font-size: 14px;
@@ -963,7 +978,6 @@ export default {
     padding: 0 20px;
     margin-top: 96px;
     z-index: 99;
-    /* overflow: auto; */
 }
 .el-collapse-item__content {
     display: flex;
@@ -973,9 +987,6 @@ export default {
     align-items: flex-start;
     width: 100%;
 }
-/* .el-collapse-item__content .el-checkbox {
-    width: 220px;
-} */
 .refreshbtn {
     display: inline-block;
     margin-right: 10px;
@@ -985,8 +996,5 @@ export default {
 .tool-box {
     display: inline-block;
     margin-left: 20px;
-    /* width: 100%; */
-    /* display: flex; */
-    /* flex-wrap: nowrap; */
 }
 </style>

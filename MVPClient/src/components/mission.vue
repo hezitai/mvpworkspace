@@ -15,23 +15,18 @@
                 </span>
 
                 <span class="close-btn" style="right:26px" @click="handleSize('mission')" title="放大/缩小"><i :class="iconName"></i></span>
-                <span class="close-btn" @click="closeItem"><i class="el-icon-close"></i></span>
+                <span class="close-btn" @click="closeItem('mission')"><i class="el-icon-circle-close"></i></span>
             </p>
             <div class="mission-content" v-show="isMaxScreen == true">
                 <el-form ref="form" :model="form" inline class="from-content" size="mini">
                     <el-form-item label="当前任务名称：" label-width="120px">
                         <el-input disabled v-model="form.missionName" style="width:250px"></el-input>
-                        <!-- <el-select v-model="form.missionCode" placeholder="请选择" style="width:300px" @change="selectMission">
-                            <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value" :disabled="hasRunningJob">
-                            </el-option>
-                        </el-select> -->
                     </el-form-item>
                     <br />
                     <el-form-item label="当前任务模式：" label-width="120px">
                         <el-radio-group disabled v-model="form.missionType">
                             <el-radio :label="5">定深投放</el-radio>
                             <el-radio :label="80">距底定距离投放</el-radio>
-                            <!-- 80 -->
                         </el-radio-group>
                     </el-form-item>
                     <el-form-item label="当前任务状态：" label-width="120px">
@@ -62,41 +57,26 @@
                 </el-form>
                 <div class="btn-content" v-show="userlevel == 0">
                     <div class="left-btn-area">
-                        <!--  v-show="userlevel == 0" -->
                         <el-button type="danger" @click="cancelMission" :disabled='cancelBtn'>取消当前任务</el-button>
                         <el-button type="success" @click="startingMission" :disabled='startBtn'>开始执行任务</el-button>
                     </div>
-                    <!--  :disabled="userlevel == 0" -->
                     <el-button type="primary" class="create-btn" @click="createMission">增加任务</el-button>
                 </div>
             </div>
             <div class="minScreen" v-show="isMaxScreen == false">
-                <!-- <div class="form-content">
-                    <span class="labelfont">当前任务状态：</span>
-                    <el-radio-group disabled v-model="form.missionStatus">
-                        <el-radio :label="3">等待执行</el-radio>
-                        <el-radio :label="48">正在执行</el-radio>
-                        <el-radio :label="51">投放间隔等待</el-radio>
-                        <el-radio :label="768">执行完成</el-radio>
-                        <el-radio :label="12288">已经取消</el-radio>
-                    </el-radio-group>
-                </div> -->
             </div>
         </div>
 
-        <el-dialog title="新增任务" :visible.sync="dialogVisible" width="600px" :before-close="handleClose">
+        <el-dialog title="新增任务" :visible.sync="dialogVisible" width="600px" top="5vh" v-dialogDrag :before-close="handleClose">
             <div>
-                <!--  :rules="dialogFromRules" -->
-                <el-form ref="dialogFrom" :model="dialogFrom" label-width="120px">
+                <el-form ref="dialogFrom" :model="dialogFrom" label-width="140px">
                     <el-form-item label="新任务名称">
                         <el-input v-model="dialogFrom.missionName"></el-input>
                     </el-form-item>
                     <el-form-item label="任务工作模式">
                         <el-radio-group v-model="dialogFrom.missionType">
                             <el-radio :label="5">定深投放</el-radio>
-                            <!-- number 5 -->
                             <el-radio :label="80">距底定距投放</el-radio>
-                            <!-- 80 -->
                         </el-radio-group>
                     </el-form-item>
                     <el-form-item label="设定深度(米)">
@@ -115,7 +95,7 @@
                 </el-form>
             </div>
             <span slot="footer" class="dialog-footer">
-                <el-button @click="dialogVisible = false" style="margin-right:20px">取 消</el-button>
+                <el-button @click="handleClose" style="margin-right:20px">取 消</el-button>
                 <el-button type="primary" @click="createMissionDialogBtn">确 定</el-button>
             </span>
         </el-dialog>
@@ -124,6 +104,7 @@
 
 <script>
 import request from "@/utils/request.js";
+import '@/utils/directives.js'
 export default {
     name: 'mission',
     data() {
@@ -131,11 +112,9 @@ export default {
             iconName: 'el-icon-top',
             isMaxScreen: true,
             userlevel: 0,
-            options: [],
             startBtn: false,
             cancelBtn: false,
             dialogVisible: false,
-            labelPosition: 'right',
             form: {
                 missionName: '当前暂无任务',
                 missionType: '',
@@ -147,12 +126,12 @@ export default {
                 thisSettingThrowTimes: ''
             },
             dialogFrom: {
-                missionName: '',
+                missionName: new Date().getFullYear() + '-' + (new Date().getMonth() + 1 < 10 ? '0' + (new Date().getMonth() + 1) : new Date().getMonth() + 1) + '-' + (new Date().getDate() < 10 ? '0' + new Date().getDate() : new Date().getDate()) + '任务',
                 missionType: 5,
-                settingDeep: '',
-                settingTimes: '',
-                settingInterval: '',
-                safeDepth: '',
+                settingDeep: 100,
+                settingTimes: 1,
+                settingInterval: 5,
+                safeDepth: 20,
                 checkbox: false
             },
             isMaxTimes: false,
@@ -162,7 +141,9 @@ export default {
             waitingJob: [],
             setinterval: '',
             setinterval1: '',
-            baseURL:'',
+            baseURL: '',
+            exportTimes: 0,
+            si: null
         }
     },
     created() {
@@ -171,11 +152,11 @@ export default {
     },
     mounted() {
         this.baseURL = localStorage.getItem('mvpip');
-        // console.log(this.baseURL)
         this.getCurrentJob();
     },
     methods: {
         handleSize(ele) {
+            this.$emit('sendEleName', { ele: ele, btn: 'shrink' });
             if (this.iconName == 'el-icon-top') {
                 // 缩小
                 this.iconName = 'el-icon-bottom';
@@ -185,12 +166,9 @@ export default {
                 this.iconName = 'el-icon-top'
                 this.isMaxScreen = true;
             }
-            this.$emit('sendEleName', ele);
         },
-        closeItem() {
-            // open(location, '_self').close();
-            window.location.href = "about:blank";
-            window.close();
+        closeItem(ele) {
+            this.$emit('sendEleName', { ele: ele, btn: 'close' });
         },
         startingMission() {
             this.$confirm('是否开始任务？', '提示', {
@@ -232,6 +210,15 @@ export default {
             this.dialogVisible = true;
         },
         handleClose() {
+            this.dialogFrom =  {
+                missionName: new Date().getFullYear() + '-' + (new Date().getMonth() + 1 < 10 ? '0' + (new Date().getMonth() + 1) : new Date().getMonth() + 1) + '-' + (new Date().getDate() < 10 ? '0' + new Date().getDate() : new Date().getDate()) + '任务',
+                missionType: 5,
+                settingDeep: 100,
+                settingTimes: 1,
+                settingInterval: 5,
+                safeDepth: 20,
+                checkbox: false
+            };
             this.dialogVisible = false;
         },
         /**
@@ -293,7 +280,6 @@ export default {
             params.settingDeep = Number(params.settingDeep);
             params.settingInterval = Number(params.settingInterval);
             params.settingTimes = Number(params.settingTimes);
-            // console.log(params);
             this.addJob(params);
         },
         isSettingTimes() {
@@ -302,12 +288,6 @@ export default {
             } else {
                 this.isMaxTimes = false
             }
-        },
-        loopGetMission() {
-            let _this = this;
-            // this.setinterval = window.setInterval(() => {
-            //     // _this.getCurrentJob()
-            // }, 1000)
         },
         /**
          * 新增任务
@@ -329,22 +309,21 @@ export default {
                 }
             });
             try {
-                // console.log(result.data);
-                _this.dialogFrom = {
-                    missionName: '',
-                    missionType: 5,
-                    settingDeep: '',
-                    settingTimes: '',
-                    settingInterval: '',
-                    safeDepth: '',
-                    checkbox: false
-                };
                 _this.isMaxTimes = false;
                 _this.$message({
                     message: '已添加任务',
                     type: 'success'
                 });
-                this.dialogVisible = false;
+                _this.dialogVisible = false;
+                _this.dialogFrom = {
+                    missionName: new Date().getFullYear() + '-' + (new Date().getMonth() + 1 < 10 ? '0' + (new Date().getMonth() + 1) : new Date().getMonth() + 1) + '-' + (new Date().getDate() < 10 ? '0' + new Date().getDate() : new Date().getDate()) + '任务',
+                    missionType: 5,
+                    settingDeep: 100,
+                    settingTimes: 1,
+                    settingInterval: 5,
+                    safeDepth: 20,
+                    checkbox: false
+                };
             } catch (error) {
                 console.error(error);
                 _this.$message({
@@ -382,7 +361,9 @@ export default {
                     if (result.data[0].jobStatus >= 768) {
                         if (_this.userlevel == 0) {
                             // 导出
-                            _this.exportData(jobId)
+                            _this.si = window.setInterval(() => {
+                                _this.exportFile(jobId)
+                            }, 1000)
                         }
                         _this.getCurrentJob();
                     } else {
@@ -422,10 +403,6 @@ export default {
                     };
                     _this.realTimeJobId = result.data[0].jobId;
                     _this.getRealtimeJob(_this.realTimeJobId)
-                    // _this.exportData(20200914133701744)
-                    // if (result.data[0].jobStatus == 12288) {
-                    //     _this.getRealtimeJob(result.data[0].jobId)
-                    // }
                 } else {
                     _this.setinterval = window.setInterval(() => {
                         _this.getCurrentJob()
@@ -438,20 +415,23 @@ export default {
         /**
          * 导出
          * */
-        async exportData(jobid) {
+        async exportFile(jobid) {
             let _this = this;
             let result = await request({
-                url: "job/export_data",
+                url: "job/get_export_file",
                 method: "get",
                 params: {
                     jobId: jobid
                 }
             });
             try {
-                // console.log(result);
-                window.open(_this.baseURL + `/api/job/download?file_name=` + result.data.fileName)
+                if (result.data[0].filePrepare == 1) {
+                    window.location.href = _this.baseURL + `/api/job/download?file_name=export_file/` + result.data[0].downloadFile
+                    window.clearInterval(_this.si)
+                }
             } catch (error) {
                 console.log(error);
+                window.clearInterval(_this.si)
             }
         },
         /**
@@ -484,7 +464,6 @@ export default {
 }
 .mission-content {
     overflow: hidden;
-    /* min-width: 1320px; */
     display: flex;
     justify-content: space-between;
     border-top: 1px solid #eee;
@@ -495,9 +474,6 @@ export default {
     margin-left: 5px;
 }
 .btn-content {
-    /* position: absolute; */
-    /* top: 10px; */
-    /* right: 20px; */
     padding: 15px 0;
     display: flex;
     justify-content: center;
@@ -510,7 +486,6 @@ export default {
     margin: 5px 10px;
     line-height: 32px;
     height: 32px;
-    /* border-bottom: 1px solid #eee; */
     cursor: default;
 }
 .page-title .close-btn {
@@ -519,6 +494,9 @@ export default {
     top: 0px;
     cursor: pointer;
     color: #303133;
+}
+.page-title .close-btn:hover {
+    color: #5cb6ff;
 }
 .left-btn-area {
     display: flex;
@@ -529,13 +507,12 @@ export default {
 }
 .left-btn-area .el-button {
     display: block;
-    height: 50px;
+    height: 48%;
     width: 100px;
     white-space: normal;
 }
 .btn-content .create-btn {
     display: block;
-    /* height: 120px; */
 }
 .el-button + .el-button {
     margin-left: 0;

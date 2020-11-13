@@ -1,18 +1,15 @@
-var path = require("path");
-const log4js = require('log4js');
-
 const db_params = {
 
-    username: 'root',
-    password: 'op[]op[]',
-    host: 'localhost',
+    //username: 'root',
+    //password: 'op[]op[]',
+    //host: 'localhost',
 
-    // password: '123456',
-    // host: '192.168.92.152',
-
-    //username:'MVPUser',
-    //password:'MVP_Laurel_2020',
-    //host: '116.228.83.142',
+    //password: '123456',
+    //host: '192.168.92.152',
+    
+    username:'MVPUser',
+    password:'MVP_Laurel_2020',
+    host: '116.228.83.142',
 
     dialect: 'mysql',
     pool: {
@@ -21,20 +18,19 @@ const db_params = {
         acquire: 300000,
         idle: 1000000
     },
-    dialectoptions: {
-        connectTimeout: 60000,
-        options: {
-            requestTimeout: 300000
-        }
+    dialectOptions: {
+        dateStrings: true,
+        typeCast: true,
+        connectTimeout: 60000
     },
-
+    timezone: '+08:00', // -->Add this line. for writing to database
     define: {
         timestamps: false
     }
 };
 
 /*
- * ï¿½ï¿½Ö¾ï¿½Ä¼ï¿½ï¿½ï¿½
+ * ÈÕÖ¾µÄ¼¶±ð£º
  * {
   ALL 
   TRACE
@@ -48,20 +44,22 @@ const db_params = {
 } 
  */
 
-log4js.configure({
+const log_configure = {
     appenders: {
         mvp: {
             type: 'dateFile',
             filename: 'mvpserver',
             pattern: "yyyy-MM-dd.log",
             alwaysIncludePattern: true,
-            category: 'normal'
+            category: 'normal',
+            layout: {
+                type: 'pattern',
+                pattern: '%d %p %z %m%n'
+            }
         }
     },
     categories: { default: { appenders: ['mvp'], level: 'debug' } }
-});
-
-const logger = log4js.getLogger('mvp');
+};
 
 const env = {
     sysDB: {
@@ -80,7 +78,7 @@ const env = {
         database: 'DB_WINCH',
         params: db_params
     },
-    logger: logger
+    log_cfg:log_configure
 };
 
 module.exports = env;
