@@ -1,15 +1,16 @@
 import axios from "axios";
 // axios.defaults.withCredentials = true;
-// axios.defaults.timeout = 500000;
+axios.defaults.timeout = 20000;
 if (process.env !== "production") {
-    axios.defaults.baseURL = "http://localhost:8080/api/";
+    // axios.defaults.baseURL = "http://localhost:8080/api/";
+    axios.defaults.baseURL = localStorage.getItem('mvpip') + '/api/'
 }
-if (process.env.VUE_APP_FLAG === "buildtest") {
-    // axios.defaults.baseURL = "http://shyc.dccnet.com.cn/res/network";
-}
-if (process.env.VUE_APP_FLAG === "prod") {
-    // axios.defaults.baseURL = "http://shyc.dccnet.com.cn/res/network";
-}
+// if (process.env.VUE_APP_FLAG === "buildtest") {
+//     axios.defaults.baseURL = "http://shyc.dccnet.com.cn/res/network";
+// }
+// if (process.env.VUE_APP_FLAG === "prod") {
+//     axios.defaults.baseURL = "http://shyc.dccnet.com.cn/res/network";
+// }
 axios.defaults.headers.post["Content-Type"] = "application/json";
 
 function request(options) {
